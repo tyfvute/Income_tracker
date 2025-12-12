@@ -16,7 +16,7 @@ def init_db():
     # Таблица пользователей
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL
     )
@@ -25,7 +25,7 @@ def init_db():
     # Таблица записей
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY,
         user_id INTEGER NOT NULL,
         amount REAL NOT NULL,
         category TEXT NOT NULL,
