@@ -23,7 +23,6 @@ def index():
         rec_type = request.form['type']
 
         if amount and category and rec_type:
-            # Используем ? вместо %s для SQLite
             cursor.execute(
                 "INSERT INTO records (user_id, amount, category, type) VALUES (?, ?, ?, ?)",
                 (user_id, amount, category, rec_type)
@@ -58,7 +57,6 @@ def login():
         conn.close()
 
         if user:
-            # Благодаря row_factory можно обращаться по именам колонок
             session['user_id'] = user['id']
             session['username'] = user['username']
             return redirect(url_for('index'))
@@ -93,4 +91,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
+
     app.run(debug=True)
