@@ -8,80 +8,142 @@
             <h4 class="text-center text-purple mb-4">Добавить Запись</h4>
             <form method="POST">
                 <div class="mb-3">
-                    <label class="form-label">Сумма:</label>
-                    <input type="number" step="0.01" name="amount" class="form-control" required>
+                    <label class="form-label">Сумма (руб.):</label>
+                    <input type="number" name="amount" class="form-control" required placeholder="Например: 1500" min="1">
                 </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-block">Тип операции:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="type" id="type_expense" value="expense" checked>
+                        <label class="form-check-label" for="type_expense">Расход</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="type" id="type_income" value="income">
+                        <label class="form-check-label" for="type_income">Доход</label>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">Категория:</label>
-                    <select name="category" class="form-select">
-                        <option value="Продукты">Продукты</option>
-                        <option value="Транспорт">Транспорт</option>
-                        <option value="Развлечения">Развлечения</option>
-                        <option value="Зарплата">Зарплата</option>
-                        <option value="Другое">Другое</option>
-                    </select>
+                    <select name="category" id="category_select" class="form-select" required>
+                        </select>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label d-block">Тип:</label>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="type" id="expense" value="expense" checked>
-                        <label class="form-check-label" for="expense">Расход</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="type" id="income" value="income">
-                        <label class="form-check-label" for="income">Доход</label>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-purple">Сохранить Запись</button>
+
+                <button type="submit" class="btn btn-purple w-100">Сохранить</button>
             </form>
         </div>
 
         <div class="card p-4 text-center mt-4 bg-light">
-            <h4 class="text-purple mb-3">Отчет за Текущий Месяц</h4>
-            <div style="background-color: #f3e5f5; padding: 20px; border-radius: 5px; border: 1px solid #e1bee7;">
-                <h5>Общий Баланс:
-                    <span style="font-weight: bold; font-size: 1.5em; color: {% if balance >= 0 %}#28a745{% else %}#dc3545{% endif %};">
-                        {{ balance }}
+            <h4 class="text-purple mb-3">Ваш кошелек</h4>
+            <div style="background-color: #f3e5f5; padding: 20px; border-radius: 10px; border: 1px solid #e1bee7;">
+                <p class="mb-1 text-muted">Текущий баланс:</p>
+                <h5>
+                    <span style="font-weight: bold; font-size: 1.8em; color: {% if balance >= 0 %}#28a745{% else %}#dc3545{% endif %};">
+                        {{ "{:,}".format(balance|int).replace(',', ' ') }} ₽
                     </span>
                 </h5>
             </div>
-            <p class="mt-3 fw-bold">Статистика Расходов по Категориям:</p>
-            </div>
 
-        <div class="mt-5 text-center">
-            <h4 class="text-purple mb-3">История Транзакций</h4>
-            {% if records %}
-                <table class="table table-hover text-start">
-                    <thead>
-                        <tr>
-                            <th>Категория</th>
-                            <th>Тип</th>
-                            <th>Дата</th>
-                            <th class="text-end">Сумма</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in records %}
-                        <tr>
-                            <td>{{ record.category }}</td>
-                            <td>
-                                {% if record.type == 'income' %}
-                                    <span class="badge bg-success">Доход</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Расход</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ record.date }}</td>
-                            <td class="text-end fw-bold">{{ record.amount }}</td>
-                        </tr>
+            <div class="mt-4 text-start">
+                <p class="fw-bold text-center">Расходы по категориям:</p>
+                {% if stats %}
+                    <ul class="list-group list-group-flush">
+                        {% for item in stats %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+                            {{ item.category }}
+                            <span class="badge bg-purple rounded-pill">
+                                {{ "{:,}".format(item.total|int).replace(',', ' ') }} ₽
+                            </span>
+                        </li>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </ul>
+                {% else %}
+                    <p class="text-muted text-center small">Здесь будет статистика ваших трат</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <h4 class="text-purple mb-3 text-center">История операций</h4>
+            {% if records %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Категория / Тип</th>
+                        <th>Дата</th>
+                        <th class="text-end">Сумма</th>
+                        <th class="text-center">Действие</th> </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>
+                            <strong>{{ record.category }}</strong><br>
+                            {% if record.type == 'income' %}
+                                <span class="text-success small">● Доход</span>
+                            {% else %}
+                                <span class="text-danger small">● Расход</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">
+                            {{ record.date }}
+                        </td>
+                        <td class="text-end fw-bold">
+                            {% if record.type == 'income' %}+{% else %}-{% endif %}
+                            {{ "{:,}".format(record.amount|int).replace(',', ' ') }} ₽
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('delete_record', record_id=record.id) }}"
+                               class="btn btn-outline-danger btn-sm"
+                               onclick="return confirm('Вы уверены, что хотите удалить эту запись?')">
+                                &times;
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
             {% else %}
-                <p class="text-muted">Транзакций пока нет. Добавьте первую запись выше!</p>
+                <div class="alert alert-secondary text-center">История пока пуста</div>
             {% endif %}
         </div>
 
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category_select');
+    const radioButtons = document.querySelectorAll('input[name="type"]');
+
+    const categories = {
+        'expense': ["Продукты", "Развлечения", "Транспорт", "Аренда", "Одежда", "Здоровье", "Подписки","Донаты стримерам", "Другое"],
+        'income': ["Зарплата", "Долг", "Подарок", "Донаты со стримов", "Другое"]
+    };
+
+    function updateCategories(type) {
+        categorySelect.innerHTML = '';
+
+        const currentList = categories[type];
+
+        currentList.forEach(function(item) {
+            const option = document.createElement('option');
+            option.value = item;
+            option.textContent = item;
+            categorySelect.appendChild(option);
+        });
+    }
+
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateCategories(this.value);
+        });
+    });
+
+    updateCategories('expense');
+});
+</script>
 {% endblock %}
