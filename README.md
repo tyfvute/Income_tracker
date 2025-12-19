@@ -30,10 +30,14 @@
 
 ```bash
 
-git clone https://github.com/tyfvute/Project-artem.git
-cd Project_artem
+git clone https://github.com/tyfvute/Income_tracker.git
+cd Income_tracker
 
 ```
+
+
+* **alternative** - Зайдите на эту ссылку [https://github.com/tyfvute/Income_tracker/releases/tag/release](https://github.com/tyfvute/Income_tracker/releases/tag/release) и скачайте zip файл
+
 ### 2. Установка библиотеки Flask:
 
 ```bash
@@ -56,7 +60,7 @@ python database.py
 
 ```bash
 
-python app.py
+python main.py
 
 ```
 ---
