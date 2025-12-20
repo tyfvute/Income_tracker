@@ -1,149 +1,48 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-
-        <div class="card p-4">
-            <h4 class="text-center text-purple mb-4">Добавить Запись</h4>
-            <form method="POST">
-                <div class="mb-3">
-                    <label class="form-label">Сумма (руб.):</label>
-                    <input type="number" name="amount" class="form-control" required placeholder="Например: 1500" min="1">
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label d-block">Тип операции:</label>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="type" id="type_expense" value="expense" checked>
-                        <label class="form-check-label" for="type_expense">Расход</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="type" id="type_income" value="income">
-                        <label class="form-check-label" for="type_income">Доход</label>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Категория:</label>
-                    <select name="category" id="category_select" class="form-select" required>
-                        </select>
-                </div>
-
-                <button type="submit" class="btn btn-purple w-100">Сохранить</button>
-            </form>
+{% extends 'base.html' %}{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<div class="mx-auto" style="max-width: 1200px;"><div class="row g-4 justify-content-center">
+    <div class="col-md-5">
+        <div class="card p-3 mb-4 shadow-sm border-danger"><div class="text-center mb-3"><small class="text-muted fw-bold text-uppercase">Всего расходов</small><h3 class="text-danger fw-bold">{{ "{:,}".format(total_exp|int).replace(',', ' ') }} ₽</h3></div>
+            <div class="row align-items-center"><div class="col-5"><canvas id="expChart"></canvas></div><div class="col-7">{% if total_exp > 0 %}<div class="card border-0 bg-light"><div class="card-header bg-transparent border-0 pb-0 small fw-bold text-muted">Детализация</div><div style="max-height: 150px; overflow-y: auto;"><table class="table table-sm small mb-0 table-borderless" style="table-layout: fixed; width: 100%;"><tbody>
+                {% for cat, sum in exp_stats.items() %}<tr><td class="fw-bold text-danger" style="width: 45px;">{{ ((sum / total_exp) * 100)|round|int }}%</td><td class="fw-bold text-truncate">{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽</td><td class="text-muted text-truncate">{{ cat }}</td></tr>{% endfor %}
+            </tbody></table></div></div>{% endif %}</div></div>
         </div>
-
-        <div class="card p-4 text-center mt-4 bg-light">
-            <h4 class="text-purple mb-3">Ваш кошелек</h4>
-            <div style="background-color: #f3e5f5; padding: 20px; border-radius: 10px; border: 1px solid #e1bee7;">
-                <p class="mb-1 text-muted">Текущий баланс:</p>
-                <h5>
-                    <span style="font-weight: bold; font-size: 1.8em; color: {% if balance >= 0 %}#28a745{% else %}#dc3545{% endif %};">
-                        {{ "{:,}".format(balance|int).replace(',', ' ') }} ₽
-                    </span>
-                </h5>
-            </div>
-
-            <div class="mt-4 text-start">
-                <p class="fw-bold text-center">Расходы по категориям:</p>
-                {% if stats %}
-                    <ul class="list-group list-group-flush">
-                        {% for item in stats %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                            {{ item.category }}
-                            <span class="badge bg-purple rounded-pill">
-                                {{ "{:,}".format(item.total|int).replace(',', ' ') }} ₽
-                            </span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="text-muted text-center small">Здесь будет статистика ваших трат</p>
-                {% endif %}
-            </div>
+        <div class="card p-3 shadow-sm border-success"><div class="text-center mb-3"><small class="text-muted fw-bold text-uppercase">Всего доходов</small><h3 class="text-success fw-bold">{{ "{:,}".format(total_inc|int).replace(',', ' ') }} ₽</h3></div>
+            <div class="row align-items-center"><div class="col-5"><canvas id="incChart"></canvas></div><div class="col-7">{% if total_inc > 0 %}<div class="card border-0 bg-light"><div class="card-header bg-transparent border-0 pb-0 small fw-bold text-muted">Детализация</div><div style="max-height: 150px; overflow-y: auto;"><table class="table table-sm small mb-0 table-borderless" style="table-layout: fixed; width: 100%;"><tbody>
+                {% for cat, sum in inc_stats.items() %}<tr><td class="fw-bold text-success" style="width: 45px;">{{ ((sum / total_inc) * 100)|round|int }}%</td><td class="fw-bold text-truncate">{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽</td><td class="text-muted text-truncate">{{ cat }}</td></tr>{% endfor %}
+            </tbody></table></div></div>{% endif %}</div></div>
         </div>
-
-        <div class="mt-5">
-            <h4 class="text-purple mb-3 text-center">История операций</h4>
-            {% if records %}
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Категория / Тип</th>
-                        <th>Дата</th>
-                        <th class="text-end">Сумма</th>
-                        <th class="text-center">Действие</th> </tr>
-                </thead>
-                <tbody>
-                    {% for record in records %}
-                    <tr>
-                        <td>
-                            <strong>{{ record.category }}</strong><br>
-                            {% if record.type == 'income' %}
-                                <span class="text-success small">● Доход</span>
-                            {% else %}
-                                <span class="text-danger small">● Расход</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-muted small">
-                            {{ record.date }}
-                        </td>
-                        <td class="text-end fw-bold">
-                            {% if record.type == 'income' %}+{% else %}-{% endif %}
-                            {{ "{:,}".format(record.amount|int).replace(',', ' ') }} ₽
-                        </td>
-                        <td class="text-center">
-                            <a href="{{ url_for('delete_record', record_id=record.id) }}"
-                               class="btn btn-outline-danger btn-sm"
-                               onclick="return confirm('Вы уверены, что хотите удалить эту запись?')">
-                                &times;
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-            {% else %}
-                <div class="alert alert-secondary text-center">История пока пуста</div>
-            {% endif %}
-        </div>
-
     </div>
-</div>
-
+    <div class="col-md-4">
+        <div class="card p-4 text-center bg-purple text-white border-0 shadow mb-4" style="border-radius: 25px;"><p class="mb-1 opacity-75 small">Ваш кошелек</p><h5 class="mb-2">Текущий баланс</h5><div class="display-6 fw-bold">{{ "{:,}".format(balance|int).replace(',', ' ') }} ₽</div></div>
+        <div class="card p-3 border-danger shadow-sm mb-3"><h6 class="text-danger fw-bold small mb-2">ДОБАВИТЬ РАСХОД</h6><form method="POST" class="row g-2"><input type="hidden" name="type" value="expense"><div class="col-7"><input type="number" name="amount" class="form-control form-control-sm" placeholder="Сумма" required step="1" max="1000000000000000"></div><div class="col-5"><input type="text" name="category" class="form-control form-control-sm" placeholder="Категория" required></div><button class="btn btn-danger btn-sm w-100 mt-2">Записать</button></form></div>
+        <div class="card p-3 border-success shadow-sm"><h6 class="text-success fw-bold small mb-2">ДОБАВИТЬ ДОХОД</h6><form method="POST" class="row g-2"><input type="hidden" name="type" value="income"><div class="col-7"><input type="number" name="amount" class="form-control form-control-sm" placeholder="Сумма" required step="1" max="1000000000000000"></div><div class="col-5"><input type="text" name="category" class="form-control form-control-sm" placeholder="Категория" required></div><button class="btn btn-success btn-sm w-100 mt-2">Записать</button></form></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-purple border-3 mb-4 overflow-hidden"><div class="card-header bg-white fw-bold small d-flex justify-content-between align-items-center"><span>История операций</span><span class="badge bg-light text-muted fw-normal">{{ records|length }}</span></div>
+            <form method="GET" class="p-2 border-bottom bg-light"><div class="row g-1"><div class="col-6"><select name="filter_type" class="form-select form-select-sm" onchange="this.form.submit()"><option value="all" {% if filter_type == 'all' %}selected{% endif %}>Все типы</option><option value="income" {% if filter_type == 'income' %}selected{% endif %}>Доход</option><option value="expense" {% if filter_type == 'expense' %}selected{% endif %}>Расход</option></select></div><div class="col-6"><select name="filter_cat" class="form-select form-select-sm" onchange="this.form.submit()"><option value="all" {% if filter_cat == 'all' %}selected{% endif %}>Все категории</option>{% for cat in categories %}<option value="{{ cat['category'] }}" {% if filter_cat == cat['category'] %}selected{% endif %}>{{ cat['category'] }}</option>{% endfor %}</select></div></div></form>
+            <div style="max-height: 350px; overflow-y: auto;">{% for r in records %}<div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center"><div style="line-height: 1.2; min-width: 0; flex: 1;" class="me-2"><div class="fw-bold small text-dark text-truncate"><span class="text-muted me-1">{{ loop.index }}.</span>{{ r.category }}</div><div class="text-muted" style="font-size: 0.75rem;">{{ r.date }}</div></div><div class="text-end d-flex align-items-center flex-shrink-0"><span class="fw-bold small me-2 text-truncate {{ 'text-success' if r.type=='income' else 'text-danger' }}"> {{ '+' if r.type=='income' else '-' }}{{ "{:,}".format(r.amount|int).replace(',', ' ') }} ₽</span><a href="{{ url_for('delete', id=r.id) }}" class="text-secondary text-decoration-none fw-bold" style="font-size: 1.1rem; line-height: 1;">&times;</a></div></div>{% endfor %}</div>
+        </div>
+        <div class="card p-3 shadow-sm border-purple border-3"><h6 class="fw-bold small mb-2">Накопление</h6>{% if goal %}<div class="d-flex justify-content-between align-items-start mb-1"><div class="small text-truncate me-2" style="max-width: 150px;"><b>{{ goal.description }}</b></div><a href="{{ url_for('delete_goal') }}" class="text-muted text-decoration-none small">&times; сброс</a></div>
+            {% set prog = (balance / goal.target * 100)|int if goal.target > 0 else 0 %}{% set remaining = goal.target - balance %}
+            <div class="progress mb-1" style="height: 12px; border-radius: 6px;"><div class="progress-bar {{ 'bg-success' if prog >= 100 else 'bg-purple' }}" style="width: {{ prog if prog <= 100 else 100 }}%">{% if prog >= 10 %}{{ prog }}%{% endif %}</div></div>
+            {% if remaining > 0 %}<div class="text-center small text-muted mb-2">Осталось: <b>{{ "{:,}".format(remaining|int).replace(',', ' ') }} ₽</b></div>{% else %}<div class="text-center small text-success fw-bold mb-2">Цель достигнута!</div>{% endif %}<button class="btn btn-outline-secondary btn-sm w-100" onclick="document.getElementById('goalForm').classList.toggle('d-none')">Изменить цель</button>
+            <div id="goalForm" class="d-none mt-3 border-top pt-2"><form method="POST"><input type="number" name="target" class="form-control form-control-sm mb-2" placeholder="Сумма" required><input type="text" name="goal_text" class="form-control form-control-sm mb-2" placeholder="Цель" required><button class="btn btn-purple btn-sm w-100">Сохранить</button></form></div>
+            {% else %}<form method="POST"><p class="text-muted small mb-2">Установите цель.</p><input type="number" name="target" class="form-control form-control-sm mb-2" placeholder="Сколько?" required><input type="text" name="goal_text" class="form-control form-control-sm mb-2" placeholder="На что?" required><button class="btn btn-purple btn-sm w-100">Создать</button></form>{% endif %}
+        </div>
+    </div>
+</div></div>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const categorySelect = document.getElementById('category_select');
-    const radioButtons = document.querySelectorAll('input[name="type"]');
-
-    const categories = {
-        'expense': ["Продукты", "Развлечения", "Транспорт", "Аренда", "Одежда", "Здоровье", "Подписки","Донаты стримерам", "Другое"],
-        'income': ["Зарплата", "Долг", "Подарок", "Донаты со стримов", "Другое"]
+    Chart.register(ChartDataLabels);
+    const configChart = (id, labels, data, colors) => {
+        const ctx = document.getElementById(id);
+        if (!ctx || data.length === 0) return;
+        new Chart(ctx, { type: 'pie', data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }] },
+            options: { plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: { label: c => ` ${c.label}: ${c.raw.toLocaleString()} ₽ (${Math.round((c.raw/c.dataset.data.reduce((a,b)=>a+b,0))*100)}%)` } },
+            datalabels: { color: '#444', font: { weight: 'bold', size: 10 }, formatter: (v, x) => { let p = Math.round((v/x.dataset.data.reduce((a,b)=>a+b,0))*100); return p >= 10 ? p + "%" : ""; } } } } });
     };
-
-    function updateCategories(type) {
-        categorySelect.innerHTML = '';
-
-        const currentList = categories[type];
-
-        currentList.forEach(function(item) {
-            const option = document.createElement('option');
-            option.value = item;
-            option.textContent = item;
-            categorySelect.appendChild(option);
-        });
-    }
-
-    radioButtons.forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateCategories(this.value);
-        });
-    });
-
-    updateCategories('expense');
-});
+    configChart('expChart', {{ exp_stats.keys()|list|tojson }}, {{ exp_stats.values()|list|tojson }}, ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff']);
+    configChart('incChart', {{ inc_stats.keys()|list|tojson }}, {{ inc_stats.values()|list|tojson }}, ['#74c69d', '#95d5b2', '#b7e4c7', '#d8f3dc', '#00a896', '#02c39a']);
 </script>
 {% endblock %}
