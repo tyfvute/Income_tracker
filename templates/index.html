@@ -5,12 +5,12 @@
     <div class="col-md-5">
         <div class="card p-3 mb-4 shadow-sm border-danger"><div class="text-center mb-3"><small class="text-muted fw-bold text-uppercase">Всего расходов</small><h3 class="text-danger fw-bold">{{ "{:,}".format(total_exp|int).replace(',', ' ') }} ₽</h3></div>
             <div class="row align-items-center"><div class="col-5"><canvas id="expChart"></canvas></div><div class="col-7">{% if total_exp > 0 %}<div class="card border-0 bg-light"><div class="card-header bg-transparent border-0 pb-0 small fw-bold text-muted">Детализация</div><div style="max-height: 150px; overflow-y: auto;"><table class="table table-sm small mb-0 table-borderless" style="table-layout: fixed; width: 100%;"><tbody>
-                {% for cat, sum in exp_stats.items() %}<tr><td class="text-muted small" style="width: 20px;">{{ loop.index }}.</td><td class="fw-bold text-danger" style="width: 45px;">{{ ((sum / total_exp) * 100)|round|int }}%</td><td class="fw-bold text-truncate" title="{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽">{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽</td><td class="text-muted text-truncate" title="{{ cat }}">{{ cat }}</td></tr>{% endfor %}
+                {% for cat, sum in exp_stats.items() %}<tr onmouseover="toggleChart('expChart', {{ loop.index0 }}, true)" onmouseout="toggleChart('expChart', {{ loop.index0 }}, false)" style="cursor: pointer;"><td class="text-muted small" style="width: 20px;">{{ loop.index }}.</td><td class="fw-bold text-danger" style="width: 65px; white-space: nowrap;">{% set p = (sum / total_exp) * 100 %}{% if p > 99 and p < 100 %}>99%{% elif p > 0 and p < 1 %}<1%{% else %}{{ p|round|int }}%{% endif %}</td><td class="fw-bold text-truncate" title="{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽">{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽</td><td class="text-muted text-truncate" title="{{ cat }}">{{ cat }}</td></tr>{% endfor %}
             </tbody></table></div></div>{% endif %}</div></div>
         </div>
         <div class="card p-3 shadow-sm border-success"><div class="text-center mb-3"><small class="text-muted fw-bold text-uppercase">Всего доходов</small><h3 class="text-success fw-bold">{{ "{:,}".format(total_inc|int).replace(',', ' ') }} ₽</h3></div>
             <div class="row align-items-center"><div class="col-5"><canvas id="incChart"></canvas></div><div class="col-7">{% if total_inc > 0 %}<div class="card border-0 bg-light"><div class="card-header bg-transparent border-0 pb-0 small fw-bold text-muted">Детализация</div><div style="max-height: 150px; overflow-y: auto;"><table class="table table-sm small mb-0 table-borderless" style="table-layout: fixed; width: 100%;"><tbody>
-                {% for cat, sum in inc_stats.items() %}<tr><td class="text-muted small" style="width: 20px;">{{ loop.index }}.</td><td class="fw-bold text-success" style="width: 45px;">{{ ((sum / total_inc) * 100)|round|int }}%</td><td class="fw-bold text-truncate" title="{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽">{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽</td><td class="text-muted text-truncate" title="{{ cat }}">{{ cat }}</td></tr>{% endfor %}
+                {% for cat, sum in inc_stats.items() %}<tr onmouseover="toggleChart('incChart', {{ loop.index0 }}, true)" onmouseout="toggleChart('incChart', {{ loop.index0 }}, false)" style="cursor: pointer;"><td class="text-muted small" style="width: 20px;">{{ loop.index }}.</td><td class="fw-bold text-success" style="width: 65px; white-space: nowrap;">{% set p = (sum / total_inc) * 100 %}{% if p > 99 and p < 100 %}>99%{% elif p > 0 and p < 1 %}<1%{% else %}{{ p|round|int }}%{% endif %}</td><td class="fw-bold text-truncate" title="{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽">{{ "{:,}".format(sum|int).replace(',', ' ') }} ₽</td><td class="text-muted text-truncate" title="{{ cat }}">{{ cat }}</td></tr>{% endfor %}
             </tbody></table></div></div>{% endif %}</div></div>
         </div>
     </div>
@@ -35,13 +35,68 @@
 </div></div>
 <script>
     Chart.register(ChartDataLabels);
+    const charts = {};
+
     const configChart = (id, labels, data, colors) => {
         const ctx = document.getElementById(id);
         if (!ctx || data.length === 0) return;
-        new Chart(ctx, { type: 'pie', data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff' }] },
-            options: { plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: { label: c => ` ${c.label}: ${c.raw.toLocaleString()} ₽ (${Math.round((c.raw/c.dataset.data.reduce((a,b)=>a+b,0))*100)}%)` } },
-            datalabels: { color: '#444', font: { weight: 'bold', size: 10 }, formatter: (v, x) => { let p = Math.round((v/x.dataset.data.reduce((a,b)=>a+b,0))*100); return p >= 10 ? p + "%" : ""; } } } } });
+        const isSingle = data.length === 1;
+
+        charts[id] = new Chart(ctx, {
+            type: 'pie',
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: isSingle ? 0 : 1, borderColor: '#ffffff', spacing: isSingle ? 0 : 3, hoverOffset: isSingle ? 0 : 30 }] },
+            options: {
+                layout: { padding: 25 }, // Большой отступ, чтобы тултип не обрезался краем холста
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                        padding: 10,
+                        displayColors: false, // Убираем квадрат цвета для экономии места
+                        callbacks: {
+                            label: c => {
+                                let total = c.dataset.data.reduce((a, b) => a + b, 0);
+                                let p = (c.raw / total) * 100;
+                                let pStr = "";
+                                if (isSingle) pStr = "100%";
+                                else if (p > 99 && p < 100) pStr = ">99%";
+                                else if (p > 0 && p < 1) pStr = "<1%";
+                                else pStr = Math.round(p) + "%";
+                                return ` ${c.label}: ${c.raw.toLocaleString().replace(/,/g, ' ')} ₽ (${pStr})`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        color: '#444',
+                        font: { weight: 'bold', size: 11 },
+                        formatter: (v, x) => {
+                            let total = x.dataset.data.reduce((a,b)=>a+b,0);
+                            let p = (v/total)*100;
+                            if (isSingle) return "100%";
+                            if (p > 99 && p < 100) return ">99%";
+                            if (p > 0 && p < 1) return "<1%";
+                            let rp = Math.round(p);
+                            return rp >= 8 ? rp + "%" : ""; // Показываем метку, если сектор больше 8%
+                        }
+                    }
+                }
+            }
+        });
     };
+
+    function toggleChart(chartId, index, show) {
+        const chart = charts[chartId]; if (!chart) return;
+        if (show) {
+            chart.setActiveElements([{datasetIndex: 0, index: index}]);
+            chart.tooltip.setActiveElements([{datasetIndex: 0, index: index}], {x: 0, y: 0});
+        } else {
+            chart.setActiveElements([]);
+            chart.tooltip.setActiveElements([], {x: 0, y: 0});
+        }
+        chart.update();
+    }
+
     configChart('expChart', {{ exp_stats.keys()|list|tojson }}, {{ exp_stats.values()|list|tojson }}, ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff']);
     configChart('incChart', {{ inc_stats.keys()|list|tojson }}, {{ inc_stats.values()|list|tojson }}, ['#74c69d', '#95d5b2', '#b7e4c7', '#d8f3dc', '#00a896', '#02c39a']);
 </script>
